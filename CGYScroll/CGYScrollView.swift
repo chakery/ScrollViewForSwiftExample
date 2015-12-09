@@ -22,8 +22,8 @@ protocol CGYScrollViewDelegate {
 class CGYScrollView: UIView, UIScrollViewDelegate {
     private let scrollView: UIScrollView
     private let pageControl: UIPageControl
+    private var currentPage: Int // 当前页
     private var timer: NSTimer?
-    
     var delegate: CGYScrollViewDelegate? // 代理
     var imageArray: [String] // 图片StringURL的数组
     var time: Double // 时间，－1表示不执行定时滚动
@@ -45,6 +45,7 @@ class CGYScrollView: UIView, UIScrollViewDelegate {
         self.imageArray += imageArray
         self.imageArray.append(imageArray.first!)
         self.time = time
+        self.currentPage = 0
         super.init(frame: frame)
         setScrollView()
         setPageControl()
@@ -100,19 +101,15 @@ class CGYScrollView: UIView, UIScrollViewDelegate {
      */
     func setPageControl () {
         self.pageControl.translatesAutoresizingMaskIntoConstraints = false
+        self.pageControl.userInteractionEnabled = false
         self.pageControl.numberOfPages = self.imageArray.count - 2
         self.pageControl.currentPage = 0
-        self.pageControl.addTarget(self, action: "didPageControlChange", forControlEvents: .ValueChanged)
         self.addSubview(pageControl)
         //约束
         let layout1 = NSLayoutConstraint.constraintsWithVisualFormat("H:|-[pageControl]-|", options: NSLayoutFormatOptions.AlignAllBaseline, metrics: nil, views: ["pageControl":pageControl])
         let layout2 = NSLayoutConstraint.constraintsWithVisualFormat("V:[pageControl(10)]-20-|", options: NSLayoutFormatOptions.AlignAllBaseline, metrics: nil, views: ["pageControl":pageControl])
         self.addConstraints(layout1)
         self.addConstraints(layout2)
-    }
-    
-    func didPageControlChange () {
-        print("页面控制器被点击")
     }
 
     /**
@@ -126,47 +123,49 @@ class CGYScrollView: UIView, UIScrollViewDelegate {
     }
     
     /**
+     定时滚动
+     */
+    func timerChangeImagePosition () {
+        self.scrollView.scrollRectToVisible(CGRectMake(self.scrollView.contentOffset.x + self.scrollView.frame.size.width, 0, self.scrollView.frame.size.width, self.scrollView.frame.size.height), animated: true)
+    }
+    
+    /**
      改变滚动图片的位置
      */
     func changeImagePosition () {
-        let page = Int(self.scrollView.contentOffset.x / CGFloat(self.frame.size.width))
-        self.pageControl.currentPage = page-1
-        if page == self.imageArray.count-1 {
-            self.pageControl.currentPage = 0
-            self.scrollView.setContentOffset(CGPointMake(self.frame.size.width, 0), animated: false)
-        } else if page == 0 {
-            self.pageControl.currentPage = self.imageArray.count-2
-            self.scrollView.setContentOffset(CGPointMake(self.frame.size.width * CGFloat(self.imageArray.count-2), 0), animated: false)
+        if self.currentPage == 0 {
+            self.scrollView.contentOffset = CGPointMake(self.scrollView.frame.size.width * CGFloat(self.imageArray.count - 2), 0)
+            changeCurrentAndPageControl()
+        } else if self.currentPage == self.imageArray.count - 1 {
+            self.scrollView.contentOffset = CGPointMake(self.scrollView.frame.size.width, 0)
+            changeCurrentAndPageControl()
         }
     }
     
     /**
-     定时滚动
-     */
-    func timerChangeImagePosition () {
-        var page = Int(self.scrollView.contentOffset.x / CGFloat(self.frame.size.width)) + 1
-        self.pageControl.currentPage = page - 1
-        if page >= self.imageArray.count - 1 {
-            page = 1
-            self.pageControl.currentPage = 0
-            self.scrollView.setContentOffset(CGPointMake(0, 0), animated: false)
-        }
-        scrollView.scrollRectToVisible(CGRectMake(CGFloat(page)*self.frame.size.width, 0, self.frame.size.width, self.frame.size.height), animated: true)
+     修改当前页的、页面控制器
+    */
+    func changeCurrentAndPageControl () {
+        self.currentPage = Int(self.scrollView.contentOffset.x / self.scrollView.frame.size.width)
+        self.pageControl.currentPage = self.currentPage - 1
     }
     
-    // ScrollView协议方法
     func scrollViewWillBeginDragging(scrollView: UIScrollView) {
-        //用手拖拽时销毁定时器
         self.timer?.invalidate()
+        self.timer = nil
     }
     
-    func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        //没有用手拖拽时重新设置定时器
-        setTimer()
+    func scrollViewDidEndScrollingAnimation(scrollView: UIScrollView) {
+        print("----1")
+        changeCurrentAndPageControl()
+        changeImagePosition()
     }
     
     func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
+        print("-----2")
+        changeCurrentAndPageControl()
         changeImagePosition()
+        setTimer()
     }
 }
     
