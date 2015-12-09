@@ -155,6 +155,12 @@ class CGYScrollView: UIView, UIScrollViewDelegate {
         self.timer = nil
     }
     
+    func scrollViewDidEndDragging(scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if self.timer == nil {
+            setTimer()
+        }
+    }
+    
     func scrollViewDidEndScrollingAnimation(scrollView: UIScrollView) {
         changeCurrentAndPageControl()
         changeImagePosition()
@@ -163,7 +169,6 @@ class CGYScrollView: UIView, UIScrollViewDelegate {
     func scrollViewDidEndDecelerating(scrollView: UIScrollView) {
         changeCurrentAndPageControl()
         changeImagePosition()
-        setTimer()
     }
 }
     
